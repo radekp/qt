@@ -184,8 +184,10 @@ static QEvent *cloneEvent(QEvent *e)
     case QEvent::DeactivateControl:
         return new QEvent(*e);
 
+#ifndef QT_NO_CONTEXTMENU
     case QEvent::ContextMenu:
         return new QContextMenuEvent(*static_cast<QContextMenuEvent*>(e));
+#endif	
     case QEvent::InputMethod:
         return new QInputMethodEvent(*static_cast<QInputMethodEvent*>(e));
     case QEvent::AccessibilityPrepare:
@@ -238,8 +240,10 @@ static QEvent *cloneEvent(QEvent *e)
         return new QHelpEvent(*static_cast<QHelpEvent*>(e));
     case QEvent::WhatsThis:
         return new QHelpEvent(*static_cast<QHelpEvent*>(e));
+#ifndef QT_NO_STATUSTIP
     case QEvent::StatusTip:
         return new QStatusTipEvent(*static_cast<QStatusTipEvent*>(e));
+#endif
 #ifndef QT_NO_ACTION
     case QEvent::ActionChanged:
     case QEvent::ActionAdded:
