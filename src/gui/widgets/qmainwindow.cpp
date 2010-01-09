@@ -813,8 +813,6 @@ bool QMainWindow::toolBarBreak(QToolBar *toolbar) const
 
 #endif // QT_NO_TOOLBAR
 
-#ifndef QT_NO_DOCKWIDGET
-
 /*! \property QMainWindow::animated
     \brief whether manipulating dock widgets and tool bars is animated
     \since 4.2
@@ -840,6 +838,8 @@ bool QMainWindow::isAnimated() const
     Q_D(const QMainWindow);
     return d->layout->dockOptions & AnimatedDocks;
 }
+
+#ifndef QT_NO_DOCKWIDGET
 
 void QMainWindow::setAnimated(bool enabled)
 {

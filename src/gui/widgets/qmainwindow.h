@@ -102,8 +102,8 @@ public:
     Qt::ToolButtonStyle toolButtonStyle() const;
     void setToolButtonStyle(Qt::ToolButtonStyle toolButtonStyle);
 
-#ifndef QT_NO_DOCKWIDGET
     bool isAnimated() const;
+#ifndef QT_NO_DOCKWIDGET
     bool isDockNestingEnabled() const;
 #endif
 
