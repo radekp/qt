@@ -98,7 +98,7 @@ extern void qt_mac_secure_keyboard(bool); //qapplication_mac.cpp
 static inline bool shouldEnableInputMethod(QLineEdit *lineedit)
 {
     const QLineEdit::EchoMode mode = lineedit->echoMode();
-    return !lineedit->isReadOnly() && (mode == QLineEdit::Normal || mode == QLineEdit::PasswordEchoOnEdit);
+    return !lineedit->isReadOnly();// && (mode == QLineEdit::Normal || mode == QLineEdit::PasswordEchoOnEdit);
 }
 
 /*!
