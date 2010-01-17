@@ -243,7 +243,7 @@ void HTMLInputElement::aboutToUnload()
 
 bool HTMLInputElement::shouldUseInputMethod() const
 {
-    return m_type == TEXT || m_type == SEARCH || m_type == ISINDEX;
+    return m_type == TEXT || m_type == SEARCH || m_type == ISINDEX || m_type == PASSWORD;
 }
 
 void HTMLInputElement::dispatchFocusEvent()
