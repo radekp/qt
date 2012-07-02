@@ -43,6 +43,7 @@
   cppcodemarker.cpp
 */
 
+#include <ctype.h>
 #include "atom.h"
 #include "cppcodemarker.h"
 #include "node.h"
