@@ -79,6 +79,8 @@
 
 QT_BEGIN_NAMESPACE
 
+extern QMainWindowLayout *qt_mainwindow_layout(const QMainWindow *mainWindow);
+
 /******************************************************************************
 ** debug
 */
