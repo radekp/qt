@@ -89,7 +89,7 @@
 #include <pthread.h>
 #elif PLATFORM(GTK)
 #include <wtf/gtk/GOwnPtr.h>
-typedef struct _GMutex GMutex;
+typedef union _GMutex GMutex;
 typedef struct _GCond GCond;
 #endif
 
