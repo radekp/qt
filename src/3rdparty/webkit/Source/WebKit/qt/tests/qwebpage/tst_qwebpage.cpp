@@ -575,6 +575,7 @@ void tst_QWebPage::updatePositionDependentActionsCrash()
 // https://bugs.webkit.org/show_bug.cgi?id=20357
 void tst_QWebPage::contextMenuCrash()
 {
+#ifndef QT_NO_CONTEXTMENU    
     QWebView view;
     view.setHtml("<p>test");
     QPoint pos(0, 0);
@@ -589,6 +590,7 @@ void tst_QWebPage::contextMenuCrash()
     }
     QVERIFY(contextMenu);
     delete contextMenu;
+#endif
 }
 
 void tst_QWebPage::database()
@@ -2983,6 +2985,7 @@ void tst_QWebPage::macCopyUnicodeToClipboard()
 
 void tst_QWebPage::contextMenuCopy()
 {
+#ifndef QT_NO_CONTEXTMENU
     QWebView view;
 
     view.setHtml("<a href=\"http://www.google.com\">You cant miss this</a>");
@@ -3004,6 +3007,7 @@ void tst_QWebPage::contextMenuCopy()
     QList<QAction *> list = contextMenu->actions();
     int index = list.indexOf(view.page()->action(QWebPage::Copy));
     QVERIFY(index != -1);
+#endif
 }
 
 void tst_QWebPage::deleteQWebViewTwice()
