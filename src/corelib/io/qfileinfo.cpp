@@ -818,7 +818,11 @@ QString QFileInfo::suffix() const
     Q_D(const QFileInfo);
     if (d->isDefaultConstructed)
         return QLatin1String("");
-    return d->fileEntry.suffix();
+    QString fileName = d->getFileName(QAbstractFileEngine::BaseName);
+    int lastDot = fileName.lastIndexOf(QLatin1Char('.'));
+    if (lastDot == -1)
+        return QLatin1String("");
+    return fileName.mid(lastDot + 1);
 }
 
 
