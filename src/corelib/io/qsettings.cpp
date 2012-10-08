@@ -1100,7 +1100,7 @@ static inline int pathHashKey(QSettings::Format format, QSettings::Scope scope)
 static void initDefaultPaths(QMutexLocker *locker)
 {
     PathHash *pathHash = pathHashFunc();
-    QString homePath = QDir::homePath();
+    QString homePath;
     QString systemPath;
 
     locker->unlock();
@@ -1112,6 +1112,7 @@ static void initDefaultPaths(QMutexLocker *locker)
     */
     systemPath = QLibraryInfo::location(QLibraryInfo::SettingsPath);
     systemPath += QLatin1Char('/');
+    homePath = QDir::homePath();
 
     locker->relock();
     if (pathHash->isEmpty()) {
