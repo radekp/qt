@@ -96,7 +96,7 @@ macx: {
    LIBS += -framework CoreServices
 }
 
-if(contains(QT_CONFIG, zlib)|cross_compile):include(../../3rdparty/zlib.pri)
+if(contains(QT_CONFIG, zlib)):include(../../3rdparty/zlib.pri)
 else:include(../../3rdparty/zlib_dependency.pri)
 
 lib.CONFIG = dummy_install
