@@ -83,9 +83,13 @@ QWSLock::QWSLock(int id) : semId(id)
     QWSSignalHandler::instance()->addWSLock(this);
 #endif
 
+    owned = false;
+
 #ifndef QT_POSIX_IPC
     if (semId == -1) {
         semId = semget(IPC_PRIVATE, 3, IPC_CREAT | 0666);
+        owned = true;
+	//qDebug("QWSLock::QWSLock(): %p, %d", this, (int)semId);
         if (semId == -1) {
             perror("QWSLock::QWSLock");
             qFatal("Unable to create semaphore");
@@ -100,7 +104,6 @@ QWSLock::QWSLock(int id) : semId(id)
     }
 #else
     sems[0] = sems[1] = sems[2] = SEM_FAILED;
-    owned = false;
 
     if (semId == -1) {
         // ### generate really unique IDs
@@ -134,9 +137,12 @@ QWSLock::~QWSLock()
 
     if (semId != -1) {
 #ifndef QT_POSIX_IPC
-        qt_semun semval;
-        semval.val = 0;
-        semctl(semId, 0, IPC_RMID, semval);
+	if (owned) {
+	    qt_semun semval;
+	    semval.val = 0;
+	    semctl(semId, 0, IPC_RMID, semval);
+	}
+	//qDebug("QWSLock::~QWSLock(): %p, %d", this, (int)semId);
         semId = -1;
 #else
         // emulate the SEM_UNDO behavior for the BackingStore lock
@@ -170,8 +176,10 @@ bool QWSLock::up(unsigned short semNum)
     if (semNum == BackingStore)
         sops.sem_flg |= SEM_UNDO;
 
+    //qDebug("QWSLock::up(): %p, semop(%d, %d)", this, (int)semId, (int)semNum);
     EINTR_LOOP(ret, semop(semId, &sops, 1));
 #else
+    //qDebug("QWSLock::up(): %p, sem_post(%d)", this, (int)(sems[semNum]));
     ret = sem_post(sems[semNum]);
 #endif
     if (ret == -1) {
@@ -195,6 +203,7 @@ bool QWSLock::down(unsigned short semNum, int)
     if (semNum == BackingStore)
         sops.sem_flg |= SEM_UNDO;
 
+    //qDebug("QWSLock::down(): %p, semop(%d, %d)", this, (int)semId, (int)semNum);
     EINTR_LOOP(ret, semop(semId, &sops, 1));
 #else
     EINTR_LOOP(ret, sem_wait(sems[semNum]));

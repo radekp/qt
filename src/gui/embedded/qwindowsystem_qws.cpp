@@ -680,6 +680,7 @@ QWSClientPrivate::QWSClientPrivate()
 QWSClientPrivate::~QWSClientPrivate()
 {
 #ifndef QT_NO_QWS_MULTIPROCESS
+    //qDebug("QWSClientPrivate::~QWSClientPrivate()");
     delete clientLock;
 #endif
 }
@@ -689,7 +690,9 @@ void QWSClientPrivate::setLockId(int id)
 #ifdef QT_NO_QWS_MULTIPROCESS
     Q_UNUSED(id);
 #else
+    //qDebug("QWSClientPrivate::setLockId(%d)", id);
     clientLock = new QWSLock(id);
+    //qDebug("=> %p", clientLock);
 #endif
 }
 

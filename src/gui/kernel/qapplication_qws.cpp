@@ -531,6 +531,7 @@ QWSDisplay::Data::~Data()
         csocket->flush(); // may be pending QCop message, eg.
         delete csocket;
     }
+    //qDebug("QWSDisplay::Data::~Data()");
     delete clientLock;
     clientLock = 0;
 #endif
@@ -722,6 +723,7 @@ void QWSDisplay::Data::reinit( const QString& newAppName )
     mouseFilter = 0;
 
     qt_desktopWidget = 0;
+    //qDebug("QWSDisplay::Data::reinit()");
     delete QWSDisplay::Data::clientLock;
     QWSDisplay::Data::clientLock = 0;
 

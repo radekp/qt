@@ -858,7 +858,9 @@ void QWSMemorySurface::setLock(int lockId)
         return;
     if (memlock != QWSDisplay::Data::getClientLock())
         delete memlock;
+    //qDebug("QWSMemorySurface::setLock(%d)", lockId);
     memlock = (lockId == -1 ? 0 : new QWSLock(lockId));
+    //qDebug("=> %p", memlock);
 }
 #endif // QT_NO_QWS_MULTIPROCESS
 
