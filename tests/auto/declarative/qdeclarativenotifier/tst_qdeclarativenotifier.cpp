@@ -1,38 +1,38 @@
 /****************************************************************************
 **
 ** Copyright (C) 2012 Research In Motion
-** Contact: http://www.qt-project.org/
+** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the test suite of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** GNU Lesser General Public License Usage
-** This file may be used under the terms of the GNU Lesser General Public
-** License version 2.1 as published by the Free Software Foundation and
-** appearing in the file LICENSE.LGPL included in the packaging of this
-** file. Please review the following information to ensure the GNU Lesser
-** General Public License version 2.1 requirements will be met:
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Digia.  For licensing terms and
+** conditions see http://qt.digia.com/licensing.  For further information
+** use the contact form at http://qt.digia.com/contact-us.
 **
-** In addition, as a special exception, Nokia gives you certain additional
-** rights. These rights are described in the Nokia Qt LGPL Exception
+** GNU Lesser General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU Lesser
+** General Public License version 2.1 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU Lesser General Public License version 2.1 requirements
+** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+**
+** In addition, as a special exception, Digia gives you certain additional
+** rights.  These rights are described in the Digia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU General
-** Public License version 3.0 as published by the Free Software Foundation
-** and appearing in the file LICENSE.GPL included in the packaging of this
-** file. Please review the following information to ensure the GNU General
-** Public License version 3.0 requirements will be met:
-** http://www.gnu.org/copyleft/gpl.html.
-**
-** Other Usage
-** Alternatively, this file may be used in accordance with the terms and
-** conditions contained in a signed written agreement between you and Nokia.
-**
-**
-**
-**
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3.0 as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU General Public License version 3.0 requirements will be
+** met: http://www.gnu.org/copyleft/gpl.html.
 **
 **
 ** $QT_END_LICENSE$
@@ -101,34 +101,50 @@ public:
     int compiledBindingProp() const { return 42; }
     int compiledBindingPropShared() const { return 42; }
     int cppObjectProp() const { return 42; }
+
+    void verifyReceiverCount()
+    {
+        QCOMPARE(receivers(SIGNAL(selfPropChanged())), selfPropConnections);
+        QCOMPARE(receivers(SIGNAL(qmlObjectPropChanged())), qmlObjectPropConnections);
+        QCOMPARE(receivers(SIGNAL(cppObjectPropChanged())), cppObjectPropConnections);
+        QCOMPARE(receivers(SIGNAL(unboundPropChanged())), unboundPropConnections);
+        QCOMPARE(receivers(SIGNAL(normalBindingPropChanged())), normalBindingPropConnections);
+        QCOMPARE(receivers(SIGNAL(compiledBindingPropChanged())), compiledBindingPropConnections);
+        QCOMPARE(receivers(SIGNAL(compiledBindingPropSharedChanged())), compiledBindingPropSharedConnections);
+        QCOMPARE(receivers(SIGNAL(boundSignal())), boundSignalConnections);
+        QCOMPARE(receivers(SIGNAL(unusedSignal())), unusedSignalConnections);
+    }
+
 protected:
     void connectNotify(const char *signal)
     {
         const QString signalName(signal);
-        if (signalName == "selfPropChanged()") selfPropConnections++;
-        if (signalName == "qmlObjectPropChanged()") qmlObjectPropConnections++;
-        if (signalName == "cppObjectPropChanged()") cppObjectPropConnections++;
-        if (signalName == "unboundPropChanged()") unboundPropConnections++;
-        if (signalName == "normalBindingPropChanged()") normalBindingPropConnections++;
-        if (signalName == "compiledBindingPropChanged()") compiledBindingPropConnections++;
-        if (signalName == "compiledBindingPropSharedChanged()") compiledBindingPropSharedConnections++;
-        if (signalName == "boundSignal()")   boundSignalConnections++;
-        if (signalName == "unusedSignal()") unusedSignalConnections++;
+        if (signalName == SIGNAL(selfPropChanged())) selfPropConnections++;
+        if (signalName == SIGNAL(qmlObjectPropChanged())) qmlObjectPropConnections++;
+        if (signalName == SIGNAL(cppObjectPropChanged())) cppObjectPropConnections++;
+        if (signalName == SIGNAL(unboundPropChanged())) unboundPropConnections++;
+        if (signalName == SIGNAL(normalBindingPropChanged())) normalBindingPropConnections++;
+        if (signalName == SIGNAL(compiledBindingPropChanged())) compiledBindingPropConnections++;
+        if (signalName == SIGNAL(compiledBindingPropSharedChanged())) compiledBindingPropSharedConnections++;
+        if (signalName == SIGNAL(boundSignal()))   boundSignalConnections++;
+        if (signalName == SIGNAL(unusedSignal())) unusedSignalConnections++;
+        verifyReceiverCount();
         //qDebug() << Q_FUNC_INFO << this << signalName;
     }
 
     void disconnectNotify(const char *signal)
     {
         const QString signalName(signal);
-        if (signalName == "selfPropChanged()") selfPropConnections--;
-        if (signalName == "qmlObjectPropChanged()") qmlObjectPropConnections--;
-        if (signalName == "cppObjectPropChanged()") cppObjectPropConnections--;
-        if (signalName == "unboundPropChanged()") unboundPropConnections--;
-        if (signalName == "normalBindingPropChanged()") normalBindingPropConnections--;
-        if (signalName == "compiledBindingPropChanged()") compiledBindingPropConnections--;
-        if (signalName == "compiledBindingPropSharedChanged()") compiledBindingPropSharedConnections--;
-        if (signalName == "boundSignal()")   boundSignalConnections--;
-        if (signalName == "unusedSignal()") unusedSignalConnections--;
+        if (signalName == SIGNAL(selfPropChanged())) selfPropConnections--;
+        if (signalName == SIGNAL(qmlObjectPropChanged())) qmlObjectPropConnections--;
+        if (signalName == SIGNAL(cppObjectPropChanged())) cppObjectPropConnections--;
+        if (signalName == SIGNAL(unboundPropChanged())) unboundPropConnections--;
+        if (signalName == SIGNAL(normalBindingPropChanged())) normalBindingPropConnections--;
+        if (signalName == SIGNAL(compiledBindingPropChanged())) compiledBindingPropConnections--;
+        if (signalName == SIGNAL(compiledBindingPropSharedChanged())) compiledBindingPropSharedConnections--;
+        if (signalName == SIGNAL(boundSignal()))   boundSignalConnections--;
+        if (signalName == SIGNAL(unusedSignal())) unusedSignalConnections--;
+        verifyReceiverCount();
         //qDebug() << Q_FUNC_INFO << this << signalName;
     }
 
@@ -166,6 +182,8 @@ private slots:
     void readProperty();
     void propertyChange();
     void disconnectOnDestroy();
+
+    void nonQmlConnect();
 
 private:
     void createObjects();
@@ -219,6 +237,7 @@ void tst_qdeclarativenotifier::connectNotify()
     QCOMPARE(exportedClass->compiledBindingPropSharedConnections, 1);
     QCOMPARE(exportedClass->boundSignalConnections, 1);
     QCOMPARE(exportedClass->unusedSignalConnections, 0);
+    exportedClass->verifyReceiverCount();
 
     QCOMPARE(exportedObject->selfPropConnections, 0);
     QCOMPARE(exportedObject->qmlObjectPropConnections, 0);
@@ -229,6 +248,7 @@ void tst_qdeclarativenotifier::connectNotify()
     QCOMPARE(exportedObject->compiledBindingPropSharedConnections, 0);
     QCOMPARE(exportedObject->boundSignalConnections, 0);
     QCOMPARE(exportedObject->unusedSignalConnections, 0);
+    exportedObject->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::removeCompiledBinding()
@@ -238,6 +258,7 @@ void tst_qdeclarativenotifier::removeCompiledBinding()
     // Removing a binding should disconnect all of its guarded properties
     QVERIFY(QMetaObject::invokeMethod(root, "removeCompiledBinding"));
     QCOMPARE(exportedClass->compiledBindingPropConnections, 0);
+    exportedClass->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::removeCompiledBindingShared()
@@ -249,10 +270,12 @@ void tst_qdeclarativenotifier::removeCompiledBindingShared()
     // the subscription is shared between multiple bindings.
     QVERIFY(QMetaObject::invokeMethod(root, "removeCompiledBindingShared_1"));
     QCOMPARE(exportedClass->compiledBindingPropSharedConnections, 1);
+    exportedClass->verifyReceiverCount();
 
     // Removing the second binding should trigger a disconnect now.
     QVERIFY(QMetaObject::invokeMethod(root, "removeCompiledBindingShared_2"));
     QCOMPARE(exportedClass->compiledBindingPropSharedConnections, 0);
+    exportedClass->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::removeNormalBinding()
@@ -262,6 +285,7 @@ void tst_qdeclarativenotifier::removeNormalBinding()
     // Removing a binding should disconnect all of its guarded properties
     QVERIFY(QMetaObject::invokeMethod(root, "removeNormalBinding"));
     QCOMPARE(exportedClass->normalBindingPropConnections, 0);
+    exportedClass->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::readProperty()
@@ -271,6 +295,7 @@ void tst_qdeclarativenotifier::readProperty()
     // Reading a property should not connect to it
     QVERIFY(QMetaObject::invokeMethod(root, "readProperty"));
     QCOMPARE(exportedClass->unboundPropConnections, 0);
+    exportedClass->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::propertyChange()
@@ -281,8 +306,10 @@ void tst_qdeclarativenotifier::propertyChange()
     // For this, the new binding needs to be connected, and afterwards disconnected.
     QVERIFY(QMetaObject::invokeMethod(root, "changeState"));
     QCOMPARE(exportedClass->unboundPropConnections, 1);
+    exportedClass->verifyReceiverCount();
     QVERIFY(QMetaObject::invokeMethod(root, "changeState"));
     QCOMPARE(exportedClass->unboundPropConnections, 0);
+    exportedClass->verifyReceiverCount();
 }
 
 void tst_qdeclarativenotifier::disconnectOnDestroy()
@@ -294,6 +321,18 @@ void tst_qdeclarativenotifier::disconnectOnDestroy()
     delete root;
     root = 0;
     QCOMPARE(exportedObject->cppObjectPropConnections, 0);
+    exportedObject->verifyReceiverCount();
+}
+
+void tst_qdeclarativenotifier::nonQmlConnect()
+{
+    ExportedClass a;
+    connect(&a, SIGNAL(boundSignal()), &a, SIGNAL(compiledBindingPropChanged()));
+    QCOMPARE(a.boundSignalConnections, 1);
+    a.verifyReceiverCount();
+    disconnect(&a, SIGNAL(boundSignal()), &a, SIGNAL(compiledBindingPropChanged()));
+    QCOMPARE(a.boundSignalConnections, 0);
+    a.verifyReceiverCount();
 }
 
 QTEST_MAIN(tst_qdeclarativenotifier)

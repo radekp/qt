@@ -1,7 +1,7 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/
+** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the documentation of the Qt Toolkit.
 **
@@ -17,10 +17,10 @@
 **     notice, this list of conditions and the following disclaimer in
 **     the documentation and/or other materials provided with the
 **     distribution.
-**   * Neither the name of Nokia Corporation and its Subsidiary(-ies) nor
-**     the names of its contributors may be used to endorse or promote
-**     products derived from this software without specific prior written
-**     permission.
+**   * Neither the name of Digia Plc and its Subsidiary(-ies) nor the names
+**     of its contributors may be used to endorse or promote products derived
+**     from this software without specific prior written permission.
+**
 **
 ** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ** "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -39,18 +39,40 @@
 ****************************************************************************/
 
 //! [0]
-class MyThread : public QThread
+class Worker : public QObject
 {
-public:
-    void run();
+    Q_OBJECT
+
+public slots:
+    void doWork() {
+        ...
+    }
 };
 
-void MyThread::run()
+void MyObject::putWorkerInAThread()
 {
-    QTcpSocket socket;
-    // connect QTcpSocket's signals somewhere meaningful
-    ...
-    socket.connectToHost(hostName, portNumber);
-    exec();
+    Worker *worker = new Worker;
+    QThread *workerThread = new QThread(this);
+
+    connect(workerThread, SIGNAL(started()), worker, SLOT(doWork()));
+    connect(workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    worker->moveToThread(workerThread);
+
+    // Starts an event loop, and emits workerThread->started()
+    workerThread->start();
 }
 //! [0]
+
+//! [1]
+class AdvancedThreadManager : public QThread
+{
+protected:
+    void run()
+    {
+        /* ... other code to initialize thread... */
+
+        // Begin event handling
+        exec();
+    }
+};
+//! [1]

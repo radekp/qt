@@ -1,34 +1,38 @@
 /****************************************************************************
 **
 ** Copyright (C) 2011 - 2012 Research In Motion <blackberry-qt@qnx.com>
-** Contact: http://www.qt-project.org/
+** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the QtCore module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** GNU Lesser General Public License Usage
-** This file may be used under the terms of the GNU Lesser General Public
-** License version 2.1 as published by the Free Software Foundation and
-** appearing in the file LICENSE.LGPL included in the packaging of this
-** file. Please review the following information to ensure the GNU Lesser
-** General Public License version 2.1 requirements will be met:
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Digia.  For licensing terms and
+** conditions see http://qt.digia.com/licensing.  For further information
+** use the contact form at http://qt.digia.com/contact-us.
 **
-** In addition, as a special exception, Nokia gives you certain additional
-** rights. These rights are described in the Nokia Qt LGPL Exception
+** GNU Lesser General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU Lesser
+** General Public License version 2.1 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU Lesser General Public License version 2.1 requirements
+** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+**
+** In addition, as a special exception, Digia gives you certain additional
+** rights.  These rights are described in the Digia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU General
-** Public License version 3.0 as published by the Free Software Foundation
-** and appearing in the file LICENSE.GPL included in the packaging of this
-** file. Please review the following information to ensure the GNU General
-** Public License version 3.0 requirements will be met:
-** http://www.gnu.org/copyleft/gpl.html.
-**
-**
-**
-**
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3.0 as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU General Public License version 3.0 requirements will be
+** met: http://www.gnu.org/copyleft/gpl.html.
 **
 **
 ** $QT_END_LICENSE$
@@ -39,6 +43,8 @@
 
 #include "qbbscreeneventhandler.h"
 
+#include "qbbscreen.h"
+#include "qbbintegration.h"
 #include "qbbinputcontext.h"
 #include "qbbkeytranslator.h"
 
@@ -50,8 +56,9 @@
 
 QT_BEGIN_NAMESPACE
 
-QBBScreenEventHandler::QBBScreenEventHandler()
-    : mLastButtonState(Qt::NoButton)
+QBBScreenEventHandler::QBBScreenEventHandler(QBBIntegration *integration)
+    : mBBIntegration(integration)
+    , mLastButtonState(Qt::NoButton)
     , mLastMouseWindow(0)
 {
     // initialize array of touch points
@@ -107,6 +114,10 @@ bool QBBScreenEventHandler::handleEvent(screen_event_t event, int qnxType)
 
     case SCREEN_EVENT_CREATE:
         handleCreateEvent(event);
+        break;
+
+    case SCREEN_EVENT_DISPLAY:
+        handleDisplayEvent(event);
         break;
 
     default:
@@ -534,6 +545,33 @@ void QBBScreenEventHandler::handleCreateEvent(screen_event_t event)
         qFatal("QBB: failed to query event window property, errno=%d", errno);
 
     emit newWindowCreated(window);
+}
+
+void QBBScreenEventHandler::handleDisplayEvent(screen_event_t event)
+{
+    screen_display_t nativeDisplay = 0;
+    if (screen_get_event_property_pv(event, SCREEN_PROPERTY_DISPLAY, (void **)&nativeDisplay) != 0) {
+        qWarning("QBB: failed to query display property, errno=%d", errno);
+        return;
+    }
+
+    int isAttached = 0;
+    if (screen_get_event_property_iv(event, SCREEN_PROPERTY_ATTACHED, &isAttached) != 0) {
+        qWarning("QBB: failed to query display attached property, errno=%d", errno);
+        return;
+    }
+
+#if defined(QBBSCREENEVENTHANDLER_DEBUG)
+    qDebug() << Q_FUNC_INFO << "display attachment is now:" << isAttached;
+#endif
+    QBBScreen *screen = mBBIntegration->screenForNative(nativeDisplay);
+    if (!screen) {
+        if (isAttached)
+            mBBIntegration->createDisplay(nativeDisplay, false /* not primary, we assume */);
+    } else if (!isAttached) {
+        // libscreen display is deactivated, let's remove the QBBScreen / QScreen
+        mBBIntegration->removeDisplay(screen);
+    }
 }
 
 #include "moc_qbbscreeneventhandler.cpp"

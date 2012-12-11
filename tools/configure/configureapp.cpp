@@ -1,38 +1,38 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/
+** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
+** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the tools applications of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** GNU Lesser General Public License Usage
-** This file may be used under the terms of the GNU Lesser General Public
-** License version 2.1 as published by the Free Software Foundation and
-** appearing in the file LICENSE.LGPL included in the packaging of this
-** file. Please review the following information to ensure the GNU Lesser
-** General Public License version 2.1 requirements will be met:
-** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and Digia.  For licensing terms and
+** conditions see http://qt.digia.com/licensing.  For further information
+** use the contact form at http://qt.digia.com/contact-us.
 **
-** In addition, as a special exception, Nokia gives you certain additional
-** rights. These rights are described in the Nokia Qt LGPL Exception
+** GNU Lesser General Public License Usage
+** Alternatively, this file may be used under the terms of the GNU Lesser
+** General Public License version 2.1 as published by the Free Software
+** Foundation and appearing in the file LICENSE.LGPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU Lesser General Public License version 2.1 requirements
+** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+**
+** In addition, as a special exception, Digia gives you certain additional
+** rights.  These rights are described in the Digia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU General
-** Public License version 3.0 as published by the Free Software Foundation
-** and appearing in the file LICENSE.GPL included in the packaging of this
-** file. Please review the following information to ensure the GNU General
-** Public License version 3.0 requirements will be met:
-** http://www.gnu.org/copyleft/gpl.html.
-**
-** Other Usage
-** Alternatively, this file may be used in accordance with the terms and
-** conditions contained in a signed written agreement between you and Nokia.
-**
-**
-**
-**
+** Alternatively, this file may be used under the terms of the GNU
+** General Public License version 3.0 as published by the Free Software
+** Foundation and appearing in the file LICENSE.GPL included in the
+** packaging of this file.  Please review the following information to
+** ensure the GNU General Public License version 3.0 requirements will be
+** met: http://www.gnu.org/copyleft/gpl.html.
 **
 **
 ** $QT_END_LICENSE$
@@ -61,6 +61,14 @@
 #include <conio.h>
 
 QT_BEGIN_NAMESPACE
+
+enum Platforms {
+    WINDOWS,
+    WINDOWS_CE,
+    QNX,
+    BLACKBERRY,
+    SYMBIAN
+};
 
 std::ostream &operator<<(std::ostream &s, const QString &val) {
     s << val.toLocal8Bit().data();
@@ -392,6 +400,8 @@ Configure::Configure(int& argc, char** argv)
     dictionary[ "LTCG" ]            = "no";
     dictionary[ "NATIVE_GESTURES" ] = "yes";
     dictionary[ "MSVC_MP" ] = "no";
+    dictionary[ "SYSTEM_PROXIES" ]  = "no";
+    dictionary[ "SLOG2" ]           = "no";
 }
 
 Configure::~Configure()
@@ -524,8 +534,8 @@ void Configure::parseCmdLine()
             dictionary[ "BUILDDEV" ] = "yes";
         else if (configCmdLine.at(i) == "-nokia-developer") {
             cout << "Detected -nokia-developer option" << endl;
-            cout << "Nokia employees and agents are allowed to use this software under" << endl;
-            cout << "the authority of Nokia Corporation and/or its subsidiary(-ies)" << endl;
+            cout << "Digia employees and agents are allowed to use this software under" << endl;
+            cout << "the authority of Digia Plc and/or its subsidiary(-ies)" << endl;
             dictionary[ "BUILDNOKIA" ] = "yes";
             dictionary[ "BUILDDEV" ] = "yes";
             dictionary["LICENSE_CONFIRMED"] = "yes";
@@ -1009,6 +1019,10 @@ void Configure::parseCmdLine()
             dictionary[ "PLUGIN_MANIFESTS" ] = "no";
         } else if (configCmdLine.at(i) == "-plugin-manifests") {
             dictionary[ "PLUGIN_MANIFESTS" ] = "yes";
+        } else if (configCmdLine.at(i) == "-no-slog2") {
+            dictionary[ "SLOG2" ] = "no";
+        } else if (configCmdLine.at(i) == "-slog2") {
+            dictionary[ "SLOG2" ] = "yes";
         }
 
         // Work around compiler nesting limitation
@@ -1301,6 +1315,14 @@ void Configure::parseCmdLine()
             dictionary["POSIX_IPC"] = "yes";
         }
 
+        else if (configCmdLine.at(i) == "-no-system-proxies") {
+            dictionary[ "SYSTEM_PROXIES" ] = "no";
+        }
+
+        else if (configCmdLine.at(i) == "-system-proxies") {
+            dictionary[ "SYSTEM_PROXIES" ] = "yes";
+        }
+
         else {
             dictionary[ "HELP" ] = "yes";
             cout << "Unknown option " << configCmdLine.at(i) << endl;
@@ -1344,7 +1366,8 @@ void Configure::parseCmdLine()
             qmakeSpec.endsWith("-msvc2003") ||
             qmakeSpec.endsWith("-msvc2005") ||
             qmakeSpec.endsWith("-msvc2008") ||
-            qmakeSpec.endsWith("-msvc2010")) {
+            qmakeSpec.endsWith("-msvc2010") ||
+            qmakeSpec.endsWith("-msvc2012")) {
             if (dictionary[ "MAKE" ].isEmpty()) dictionary[ "MAKE" ] = "nmake";
             dictionary[ "QMAKEMAKEFILE" ] = "Makefile.win32";
         } else if (qmakeSpec.contains("win32-g++")) {
@@ -1697,7 +1720,7 @@ void Configure::applySpecSpecifics()
         dictionary[ "QT_ICONV" ]            = "no";
 
         dictionary["DECORATIONS"]           = "default windows styled";
-    } else if (dictionary[ "XQMAKESPEC" ].contains("blackberry")) { //TODO actually wrong.
+    } else if (platform() == QNX || platform() == BLACKBERRY) {
         dictionary[ "STYLE_WINDOWSXP" ]     = "no";
         dictionary[ "STYLE_WINDOWSVISTA" ]  = "no";
         dictionary[ "STYLE_WINDOWSCE" ]     = "no";
@@ -1723,6 +1746,8 @@ void Configure::applySpecSpecifics()
         dictionary[ "FONT_CONFIG" ]         = "yes";
         dictionary[ "FONT_CONFIG" ]         = "yes";
         dictionary[ "FREETYPE" ]            = "system";
+        dictionary[ "STACK_PROTECTOR_STRONG" ] = "auto";
+        dictionary[ "SLOG2" ]                 = "auto";
     }
 }
 
@@ -1920,6 +1945,9 @@ bool Configure::displayHelp()
 
         desc("POSIX_IPC",     "yes",   "-posix-ipc",    "Enable POSIX IPC.");
 
+        desc("SYSTEM_PROXIES", "yes",  "-system-proxies",    "Use system network proxies by default.");
+        desc("SYSTEM_PROXIES", "no",   "-no-system-proxies", "Do not use system network proxies by default.");
+
 #if !defined(EVAL)
         desc(                   "-qtnamespace <namespace>", "Wraps all Qt library code in 'namespace name {...}");
         desc(                   "-qtlibinfix <infix>",  "Renames all Qt* libs to Qt*<infix>\n");
@@ -1960,6 +1988,11 @@ bool Configure::displayHelp()
         desc("LIBJPEG", "no",    "-no-libjpeg",         "Do not compile JPEG support.");
         desc("LIBJPEG", "qt",    "-qt-libjpeg",         "Use the libjpeg bundled with Qt.");
         desc("LIBJPEG", "system","-system-libjpeg",     "Use libjpeg from the operating system.\nSee http://www.ijg.org\n");
+
+        if (platform() == QNX || platform() == BLACKBERRY) {
+            desc("SLOG2", "yes",  "-slog2",             "Compile with slog2 support.");
+            desc("SLOG2", "no",  "-no-slog2",           "Do not compile with slog2 support.");
+        }
 
 #endif
         // Qt\Windows only options go below here --------------------------------------------------------------------------------
@@ -2346,7 +2379,7 @@ bool Configure::checkAvailability(const QString &part)
     } else if (part == "WEBKIT") {
         const QString qmakeSpec = dictionary.value("QMAKESPEC");
         available = qmakeSpec == "win32-msvc2005" || qmakeSpec == "win32-msvc2008" ||
-                qmakeSpec == "win32-msvc2010" || qmakeSpec.startsWith("win32-g++");
+                qmakeSpec == "win32-msvc2010" || qmakeSpec == "win32-msvc2012" || qmakeSpec.startsWith("win32-g++");
         if (dictionary[ "SHARED" ] == "no") {
             cout << endl << "WARNING: Using static linking will disable the WebKit module." << endl
                  << endl;
@@ -2400,6 +2433,13 @@ bool Configure::checkAvailability(const QString &part)
         }
     } else if (part == "DIRECTWRITE") {
         available = findFile("dwrite.h") && findFile("d2d1.h") && findFile("dwrite.lib");
+    } else if (part == "STACK_PROTECTOR_STRONG") {
+        QStringList compilerAndArgs;
+        compilerAndArgs += "qcc";
+        compilerAndArgs += "-fstack-protector-strong";
+        available = dictionary[ "XQMAKESPEC" ].contains("blackberry") && compilerSupportsFlag(compilerAndArgs);
+    } else if (part == "SLOG2") {
+        available = findFile("slog2.h");
     }
 
     return available;
@@ -2502,6 +2542,14 @@ void Configure::autoDetection()
     // Detection of IncrediBuild buildconsole
     if (dictionary["INCREDIBUILD_XGE"] == "auto")
         dictionary["INCREDIBUILD_XGE"] = checkAvailability("INCREDIBUILD_XGE") ? "yes" : "no";
+
+    // Detection of -fstack-protector-strong support
+    if (dictionary["STACK_PROTECTOR_STRONG"] == "auto")
+        dictionary["STACK_PROTECTOR_STRONG"] = checkAvailability("STACK_PROTECTOR_STRONG") ? "yes" : "no";
+
+    if ((platform() == QNX || platform() == BLACKBERRY) && dictionary["SLOG2"] == "auto") {
+        dictionary[ "SLOG2" ] = checkAvailability("SLOG2") ? "yes" : "no";
+    }
 
     // Mark all unknown "auto" to the default value..
     for (QMap<QString,QString>::iterator i = dictionary.begin(); i != dictionary.end(); ++i) {
@@ -2852,17 +2900,20 @@ void Configure::generateOutputVars()
 
     if (dictionary["OPENGL_ES_CM"] == "yes") {
         qtConfig += "opengles1";
-        qtConfig += "egl";
+        if (dictionary["QPA"] == "no")
+            qtConfig += "egl";
     }
 
     if (dictionary["OPENGL_ES_2"] == "yes") {
         qtConfig += "opengles2";
-        qtConfig += "egl";
+        if (dictionary["QPA"] == "no")
+            qtConfig += "egl";
     }
 
     if (dictionary["OPENVG"] == "yes") {
         qtConfig += "openvg";
-        qtConfig += "egl";
+        if (dictionary["QPA"] == "no")
+            qtConfig += "egl";
     }
 
     if (dictionary["S60"] == "yes") {
@@ -2946,7 +2997,7 @@ void Configure::generateOutputVars()
         qtConfig += "qpa";
 
     if (dictionary["CROSS_COMPILE"] == "yes")
-        configStream << " cross_compile";
+        qtConfig << " cross_compile";
 
     if (dictionary["NIS"] == "yes")
         qtConfig += "nis";
@@ -2975,6 +3026,12 @@ void Configure::generateOutputVars()
 
     // We currently have no switch for QtSvg, so add it unconditionally.
     qtConfig += "svg";
+    if (dictionary["STACK_PROTECTOR_STRONG"] == "yes")
+        qtConfig += "stack-protector-strong";
+
+    if (dictionary["SYSTEM_PROXIES"] == "yes")
+        qtConfig += "system-proxies";
+
     // We currently have no switch for QtConcurrent, so add it unconditionally.
     qtConfig += "concurrent";
 
@@ -3228,6 +3285,9 @@ void Configure::generateCachefile()
         if (dictionary["FONT_CONFIG"] == "yes")
             configStream << " fontconfig";
 
+        if (dictionary[ "SLOG2" ] == "yes")
+            configStream << " slog2";
+
         if (dictionary.contains("SYMBIAN_DEFFILES")) {
             if (dictionary["SYMBIAN_DEFFILES"] == "yes") {
                 configStream << " def_files";
@@ -3420,9 +3480,10 @@ void Configure::generateConfigfiles()
         if (dictionary["S60"] == "no")               qconfigList += "QT_NO_S60";
         if (dictionary["NATIVE_GESTURES"] == "no")   qconfigList += "QT_NO_NATIVE_GESTURES";
 
-        if (dictionary["OPENGL_ES_CM"] == "no" &&
-           dictionary["OPENGL_ES_2"]  == "no" &&
-           dictionary["OPENVG"]       == "no")      qconfigList += "QT_NO_EGL";
+        if ((dictionary["OPENGL_ES_CM"]   == "no"
+             && dictionary["OPENGL_ES_2"] == "no"
+             && dictionary["OPENVG"]      == "no")
+            || (dictionary["QPA"]         == "yes")) qconfigList += "QT_NO_EGL";
 
         if (dictionary["OPENGL_ES_CM"] == "yes" ||
            dictionary["OPENGL_ES_2"]  == "yes")     qconfigList += "QT_OPENGL_ES";
@@ -3524,6 +3585,9 @@ void Configure::generateConfigfiles()
 
         if (dictionary[ "QT_SXE" ] == "no")
           tmpStream<<"#define QT_NO_SXE"<<endl;
+
+        if (dictionary[ "QPA" ] == "yes")
+          tmpStream<<"#define QT_QPA_DEFAULT_PLATFORM_NAME \"" << qpaPlatformName() << "\""<<endl;
 
         tmpStream.flush();
         tmpFile.flush();
@@ -3730,7 +3794,8 @@ void Configure::displayConfig()
     cout << "QtScriptTools support......." << dictionary[ "SCRIPTTOOLS" ] << endl;
     cout << "Graphics System............." << dictionary[ "GRAPHICS_SYSTEM" ] << endl;
     cout << "Qt3 compatibility..........." << dictionary[ "QT3SUPPORT" ] << endl;
-    cout << "DirectWrite support........." << dictionary[ "DIRECTWRITE" ] << endl << endl;
+    cout << "DirectWrite support........." << dictionary[ "DIRECTWRITE" ] << endl;
+    cout << "Use system proxies.........." << dictionary[ "SYSTEM_PROXIES" ] << endl << endl;
 
     cout << "Third Party Libraries:" << endl;
     cout << "    ZLIB support............" << dictionary[ "ZLIB" ] << endl;
@@ -3740,6 +3805,8 @@ void Configure::displayConfig()
     cout << "    PNG support............." << dictionary[ "PNG" ] << endl;
     cout << "    MNG support............." << dictionary[ "MNG" ] << endl;
     cout << "    FreeType support........" << dictionary[ "FREETYPE" ] << endl << endl;
+    if (platform() == QNX || platform() == BLACKBERRY)
+        cout << "    SLOG2 support..........." << dictionary[ "SLOG2" ] << endl;
 
     cout << "Styles:" << endl;
     cout << "    Windows................." << dictionary[ "STYLE_WINDOWS" ] << endl;
@@ -4317,15 +4384,7 @@ bool Configure::showLicense(QString orgLicenseFile)
 
 void Configure::readLicense()
 {
-   if (QFile::exists(dictionary["QT_SOURCE_TREE"] + "/src/corelib/kernel/qfunctions_wince.h") &&
-       (dictionary.value("QMAKESPEC").startsWith("wince") || dictionary.value("XQMAKESPEC").startsWith("wince")))
-        dictionary["PLATFORM NAME"] = "Qt for Windows CE";
-    else if (dictionary.value("XQMAKESPEC").startsWith("symbian"))
-        dictionary["PLATFORM NAME"] = "Qt for Symbian";
-    else if (dictionary["QPA"] == "yes")
-        dictionary["PLATFORM NAME"] = "Qt for QPA";
-    else
-        dictionary["PLATFORM NAME"] = "Qt for Windows";
+    dictionary["PLATFORM NAME"] = platformName();
     dictionary["LICENSE FILE"] = sourcePath;
 
     bool openSource = false;
@@ -4421,6 +4480,29 @@ void Configure::saveCmdLine()
 }
 #endif // !EVAL
 
+bool Configure::compilerSupportsFlag(const QStringList &compilerAndArgs)
+{
+    QFile file("conftest.cpp");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        cout << "could not open temp file for writing" << endl;
+        return false;
+    }
+    if (!file.write("int main() { return 0; }\r\n")) {
+        cout << "could not write to temp file" << endl;
+        return false;
+    }
+    file.close();
+    // compilerAndArgs contains compiler because there is no way to query it
+    QStringList command = compilerAndArgs;
+    command += "-o";
+    command += "conftest-out.o";
+    command += "conftest.cpp";
+    int code = Environment::execute(command, QStringList(), QStringList());
+    file.remove();
+    QFile::remove("conftest-out.o");
+    return code == 0;
+}
+
 bool Configure::isDone()
 {
     return !dictionary["DONE"].isEmpty();
@@ -4429,6 +4511,57 @@ bool Configure::isDone()
 bool Configure::isOk()
 {
     return (dictionary[ "DONE" ] != "error");
+}
+
+QString Configure::platformName() const
+{
+    switch (platform()) {
+    default:
+    case WINDOWS:
+        return QLatin1String("Qt for Windows");
+    case WINDOWS_CE:
+        return QLatin1String("Qt for Windows CE");
+    case QNX:
+        return QLatin1String("Qt for QNX");
+    case BLACKBERRY:
+        return QLatin1String("Qt for Blackberry");
+    case SYMBIAN:
+        return QLatin1String("Qt for Symbian");
+    }
+}
+
+QString Configure::qpaPlatformName() const
+{
+    switch (platform()) {
+    default:
+    case WINDOWS:
+    case WINDOWS_CE:
+        return QLatin1String("windows");
+    case QNX:
+        return QLatin1String("qnx");
+    case BLACKBERRY:
+        return QLatin1String("blackberry");
+    }
+}
+
+int Configure::platform() const
+{
+    const QString qMakeSpec = dictionary.value("QMAKESPEC");
+    const QString xQMakeSpec = dictionary.value("XQMAKESPEC");
+
+    if ((qMakeSpec.startsWith("wince") || xQMakeSpec.startsWith("wince")))
+        return WINDOWS_CE;
+
+    if (xQMakeSpec.contains("qnx"))
+        return QNX;
+
+    if (xQMakeSpec.contains("blackberry"))
+        return BLACKBERRY;
+
+    if (xQMakeSpec.startsWith("symbian"))
+        return SYMBIAN;
+
+    return WINDOWS;
 }
 
 bool
