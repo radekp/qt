@@ -1,38 +1,38 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
+** Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
+** All rights reserved.
+** Contact: Nokia Corporation (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and Digia.  For licensing terms and
-** conditions see http://qt.digia.com/licensing.  For further information
-** use the contact form at http://qt.digia.com/contact-us.
-**
 ** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU Lesser General Public License version 2.1 requirements
-** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** This file may be used under the terms of the GNU Lesser General Public
+** License version 2.1 as published by the Free Software Foundation and
+** appearing in the file LICENSE.LGPL included in the packaging of this
+** file. Please review the following information to ensure the GNU Lesser
+** General Public License version 2.1 requirements will be met:
+** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 **
-** In addition, as a special exception, Digia gives you certain additional
-** rights.  These rights are described in the Digia Qt LGPL Exception
+** In addition, as a special exception, Nokia gives you certain additional
+** rights. These rights are described in the Nokia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3.0 as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU General Public License version 3.0 requirements will be
-** met: http://www.gnu.org/copyleft/gpl.html.
+** Alternatively, this file may be used under the terms of the GNU General
+** Public License version 3.0 as published by the Free Software Foundation
+** and appearing in the file LICENSE.GPL included in the packaging of this
+** file. Please review the following information to ensure the GNU General
+** Public License version 3.0 requirements will be met:
+** http://www.gnu.org/copyleft/gpl.html.
+**
+** Other Usage
+** Alternatively, this file may be used in accordance with the terms and
+** conditions contained in a signed written agreement between you and Nokia.
+**
+**
+**
 **
 **
 ** $QT_END_LICENSE$
@@ -331,9 +331,9 @@ int QOCIResultPrivate::bindValue(OCIStmt *sql, OCIBind **hbnd, OCIError *err, in
                          SQLT_FLT, indPtr, 0, 0, 0, 0, OCI_DEFAULT);
         break;
     case QVariant::UserType:
-        if (val.canConvert<QOCIRowIdPointer>() && !isOutValue(pos)) {
+        if (qVariantCanConvert<QOCIRowIdPointer>(val) && !isOutValue(pos)) {
             // use a const pointer to prevent a detach
-            const QOCIRowIdPointer rptr = qvariant_cast<QOCIRowIdPointer>(val);
+            const QOCIRowIdPointer rptr = qVariantValue<QOCIRowIdPointer>(val);
             r = OCIBindByPos(sql, hbnd, err,
                              pos + 1,
                              // it's an IN value, so const_cast is ok
@@ -1454,8 +1454,8 @@ bool QOCICols::execBatch(QOCIResultPrivate *d, QVector<QVariant> &boundValues, b
                         break;
                     }
                     case QVariant::UserType:
-                        if (val.canConvert<QOCIRowIdPointer>()) {
-                            const QOCIRowIdPointer rptr = qvariant_cast<QOCIRowIdPointer>(val);
+                        if (qVariantCanConvert<QOCIRowIdPointer>(val)) {
+                            const QOCIRowIdPointer rptr = qVariantValue<QOCIRowIdPointer>(val);
                             *reinterpret_cast<OCIRowid**>(dataPtr) = rptr->id;
                             columns[i].lengths[row] = 0;
                             break;
@@ -1809,7 +1809,7 @@ QOCIResult::~QOCIResult()
 
 QVariant QOCIResult::handle() const
 {
-    return QVariant::fromValue(d->sql);
+    return qVariantFromValue(d->sql);
 }
 
 bool QOCIResult::reset (const QString& query)
@@ -2037,7 +2037,7 @@ QVariant QOCIResult::lastInsertId() const
         int r = OCIAttrGet(d->sql, OCI_HTYPE_STMT, ptr.constData()->id,
                            0, OCI_ATTR_ROWID, d->err);
         if (r == OCI_SUCCESS)
-            return QVariant::fromValue(ptr);
+            return qVariantFromValue(ptr);
     }
     return QVariant();
 }
@@ -2639,7 +2639,7 @@ QString QOCIDriver::formatValue(const QSqlField &field, bool trimStrings) const
 
 QVariant QOCIDriver::handle() const
 {
-    return QVariant::fromValue(d->env);
+    return qVariantFromValue(d->env);
 }
 
 QString QOCIDriver::escapeIdentifier(const QString &identifier, IdentifierType type) const

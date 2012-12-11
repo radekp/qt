@@ -1,38 +1,38 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
+** Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
+** All rights reserved.
+** Contact: Nokia Corporation (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and Digia.  For licensing terms and
-** conditions see http://qt.digia.com/licensing.  For further information
-** use the contact form at http://qt.digia.com/contact-us.
-**
 ** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU Lesser General Public License version 2.1 requirements
-** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** This file may be used under the terms of the GNU Lesser General Public
+** License version 2.1 as published by the Free Software Foundation and
+** appearing in the file LICENSE.LGPL included in the packaging of this
+** file. Please review the following information to ensure the GNU Lesser
+** General Public License version 2.1 requirements will be met:
+** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 **
-** In addition, as a special exception, Digia gives you certain additional
-** rights.  These rights are described in the Digia Qt LGPL Exception
+** In addition, as a special exception, Nokia gives you certain additional
+** rights. These rights are described in the Nokia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3.0 as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU General Public License version 3.0 requirements will be
-** met: http://www.gnu.org/copyleft/gpl.html.
+** Alternatively, this file may be used under the terms of the GNU General
+** Public License version 3.0 as published by the Free Software Foundation
+** and appearing in the file LICENSE.GPL included in the packaging of this
+** file. Please review the following information to ensure the GNU General
+** Public License version 3.0 requirements will be met:
+** http://www.gnu.org/copyleft/gpl.html.
+**
+** Other Usage
+** Alternatively, this file may be used in accordance with the terms and
+** conditions contained in a signed written agreement between you and Nokia.
+**
+**
+**
 **
 **
 ** $QT_END_LICENSE$
@@ -84,7 +84,6 @@ static QVariant::Type qGetColumnType(const QString &tpName)
         return QVariant::Int;
     if (typeName == QLatin1String("double")
         || typeName == QLatin1String("float")
-        || typeName == QLatin1String("real")
         || typeName.startsWith(QLatin1String("numeric")))
         return QVariant::Double;
     if (typeName == QLatin1String("blob"))
@@ -105,7 +104,6 @@ class QSQLiteDriverPrivate
 public:
     inline QSQLiteDriverPrivate() : access(0) {}
     sqlite3 *access;
-    QList <QSQLiteResult *> results;
 };
 
 
@@ -171,37 +169,12 @@ void QSQLiteResultPrivate::initColumns(bool emptyResultset)
         // must use typeName for resolving the type to match QSqliteDriver::record
         QString typeName = QString(reinterpret_cast<const QChar *>(
                     sqlite3_column_decltype16(stmt, i)));
-        // sqlite3_column_type is documented to have undefined behavior if the result set is empty
-        int stp = emptyResultset ? -1 : sqlite3_column_type(stmt, i);
-
-        QVariant::Type fieldType;
-
-        if (!typeName.isEmpty()) {
-            fieldType = qGetColumnType(typeName);
-        } else {
-            // Get the proper type for the field based on stp value
-            switch (stp) {
-            case SQLITE_INTEGER:
-                fieldType = QVariant::Int;
-                break;
-            case SQLITE_FLOAT:
-                fieldType = QVariant::Double;
-                break;
-            case SQLITE_BLOB:
-                fieldType = QVariant::ByteArray;
-                break;
-            case SQLITE_TEXT:
-                fieldType = QVariant::String;
-                break;
-            case SQLITE_NULL:
-            default:
-                fieldType = QVariant::Invalid;
-                break;
-            }
-        }
 
         int dotIdx = colName.lastIndexOf(QLatin1Char('.'));
-        QSqlField fld(colName.mid(dotIdx == -1 ? 0 : dotIdx + 1), fieldType);
+        QSqlField fld(colName.mid(dotIdx == -1 ? 0 : dotIdx + 1), qGetColumnType(typeName));
+
+        // sqlite3_column_type is documented to have undefined behavior if the result set is empty
+        int stp = emptyResultset ? -1 : sqlite3_column_type(stmt, i);
         fld.setSqlType(stp);
         rInf.append(fld);
     }
@@ -313,14 +286,10 @@ QSQLiteResult::QSQLiteResult(const QSQLiteDriver* db)
 {
     d = new QSQLiteResultPrivate(this);
     d->access = db->d->access;
-    db->d->results.append(this);
 }
 
 QSQLiteResult::~QSQLiteResult()
 {
-    const QSQLiteDriver * sqlDriver = qobject_cast<const QSQLiteDriver *>(driver());
-    if (sqlDriver)
-        sqlDriver->d->results.removeOne(this);
     d->cleanup();
     delete d;
 }
@@ -353,24 +322,17 @@ bool QSQLiteResult::prepare(const QString &query)
 
     setSelect(false);
 
-    const void *pzTail = NULL;
-
 #if (SQLITE_VERSION_NUMBER >= 3003011)
     int res = sqlite3_prepare16_v2(d->access, query.constData(), (query.size() + 1) * sizeof(QChar),
-                                   &d->stmt, &pzTail);
+                                   &d->stmt, 0);
 #else
     int res = sqlite3_prepare16(d->access, query.constData(), (query.size() + 1) * sizeof(QChar),
-                                &d->stmt, &pzTail);
+                                &d->stmt, 0);
 #endif
 
     if (res != SQLITE_OK) {
         setLastError(qMakeError(d->access, QCoreApplication::translate("QSQLiteResult",
                      "Unable to execute statement"), QSqlError::StatementError, res));
-        d->finalize();
-        return false;
-    } else if (pzTail && !QString(reinterpret_cast<const QChar *>(pzTail)).trimmed().isEmpty()) {
-        setLastError(qMakeError(d->access, QCoreApplication::translate("QSQLiteResult",
-            "Unable to execute multiple statements at a time"), QSqlError::StatementError, SQLITE_MISUSE));
         d->finalize();
         return false;
     }
@@ -490,7 +452,7 @@ QSqlRecord QSQLiteResult::record() const
 
 QVariant QSQLiteResult::handle() const
 {
-    return QVariant::fromValue(d->stmt);
+    return qVariantFromValue(d->stmt);
 }
 
 /////////////////////////////////////////////////////////
@@ -584,9 +546,6 @@ bool QSQLiteDriver::open(const QString & db, const QString &, const QString &, c
 void QSQLiteDriver::close()
 {
     if (isOpen()) {
-        foreach (QSQLiteResult *result, d->results)
-            result->d->finalize();
-
         if (sqlite3_close(d->access) != SQLITE_OK)
             setLastError(qMakeError(d->access, tr("Error closing database"),
                                     QSqlError::ConnectionError));
@@ -738,7 +697,7 @@ QSqlRecord QSQLiteDriver::record(const QString &tbl) const
 
 QVariant QSQLiteDriver::handle() const
 {
-    return QVariant::fromValue(d->access);
+    return qVariantFromValue(d->access);
 }
 
 QString QSQLiteDriver::escapeIdentifier(const QString &identifier, IdentifierType type) const

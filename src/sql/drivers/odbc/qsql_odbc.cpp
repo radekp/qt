@@ -1,38 +1,38 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
+** Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
+** All rights reserved.
+** Contact: Nokia Corporation (qt-info@nokia.com)
 **
 ** This file is part of the QtSql module of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
-** Commercial License Usage
-** Licensees holding valid commercial Qt licenses may use this file in
-** accordance with the commercial license agreement provided with the
-** Software or, alternatively, in accordance with the terms contained in
-** a written agreement between you and Digia.  For licensing terms and
-** conditions see http://qt.digia.com/licensing.  For further information
-** use the contact form at http://qt.digia.com/contact-us.
-**
 ** GNU Lesser General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU Lesser
-** General Public License version 2.1 as published by the Free Software
-** Foundation and appearing in the file LICENSE.LGPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU Lesser General Public License version 2.1 requirements
-** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+** This file may be used under the terms of the GNU Lesser General Public
+** License version 2.1 as published by the Free Software Foundation and
+** appearing in the file LICENSE.LGPL included in the packaging of this
+** file. Please review the following information to ensure the GNU Lesser
+** General Public License version 2.1 requirements will be met:
+** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 **
-** In addition, as a special exception, Digia gives you certain additional
-** rights.  These rights are described in the Digia Qt LGPL Exception
+** In addition, as a special exception, Nokia gives you certain additional
+** rights. These rights are described in the Nokia Qt LGPL Exception
 ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
 **
 ** GNU General Public License Usage
-** Alternatively, this file may be used under the terms of the GNU
-** General Public License version 3.0 as published by the Free Software
-** Foundation and appearing in the file LICENSE.GPL included in the
-** packaging of this file.  Please review the following information to
-** ensure the GNU General Public License version 3.0 requirements will be
-** met: http://www.gnu.org/copyleft/gpl.html.
+** Alternatively, this file may be used under the terms of the GNU General
+** Public License version 3.0 as published by the Free Software Foundation
+** and appearing in the file LICENSE.GPL included in the packaging of this
+** file. Please review the following information to ensure the GNU General
+** Public License version 3.0 requirements will be met:
+** http://www.gnu.org/copyleft/gpl.html.
+**
+** Other Usage
+** Alternatively, this file may be used in accordance with the terms and
+** conditions contained in a signed written agreement between you and Nokia.
+**
+**
+**
 **
 **
 ** $QT_END_LICENSE$
@@ -54,7 +54,6 @@
 #include <qstringlist.h>
 #include <qvarlengtharray.h>
 #include <qvector.h>
-#include <qmath.h>
 #include <QDebug>
 #include <QSqlQuery>
 
@@ -62,6 +61,15 @@ QT_BEGIN_NAMESPACE
 
 // undefine this to prevent initial check of the ODBC driver
 #define ODBC_CHECK_DRIVER
+
+// newer platform SDKs use SQLLEN instead of SQLINTEGER
+#if defined(WIN32) && (_MSC_VER < 1300) && !defined(__MINGW64_VERSION_MAJOR)
+# define QSQLLEN SQLINTEGER
+# define QSQLULEN SQLUINTEGER
+#else
+# define QSQLLEN SQLLEN
+# define QSQLULEN SQLULEN
+#endif
 
 static const int COLNAMESIZE = 256;
 //Map Qt parameter types to ODBC types
@@ -116,7 +124,7 @@ class QODBCDriverPrivate
 public:
     enum DefaultCase{Lower, Mixed, Upper, Sensitive};
     QODBCDriverPrivate()
-    : hEnv(0), hDbc(0), unicode(false), useSchema(false), disconnectCount(0), datetime_precision(19), isMySqlServer(false),
+    : hEnv(0), hDbc(0), unicode(false), useSchema(false), disconnectCount(0), isMySqlServer(false),
            isMSSqlServer(false), isFreeTDSDriver(false), hasSQLFetchScroll(true),
            hasMultiResultSets(false), isQuoteInitialized(false), quote(QLatin1Char('"'))
     {
@@ -128,7 +136,6 @@ public:
     bool unicode;
     bool useSchema;
     int disconnectCount;
-    int datetime_precision;
     bool isMySqlServer;
     bool isMSSqlServer;
     bool isFreeTDSDriver;
@@ -141,7 +148,6 @@ public:
     void checkHasSQLFetchScroll();
     void checkHasMultiResults();
     void checkSchemaUsage();
-    void checkDateTimePrecision();
     bool setConnectionOptions(const QString& connOpts);
     void splitTableQualifier(const QString &qualifier, QString &catalog,
                              QString &schema, QString &table);
@@ -354,7 +360,7 @@ static QString qGetStringData(SQLHANDLE hStmt, int column, int colSize, bool uni
 {
     QString fieldVal;
     SQLRETURN r = SQL_ERROR;
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
 
     // NB! colSize must be a multiple of 2 for unicode enabled DBs
     if (colSize <= 0) {
@@ -394,7 +400,7 @@ static QString qGetStringData(SQLHANDLE hStmt, int column, int colSize, bool uni
                 // colSize-1: remove 0 termination when there is more data to fetch
                 int rSize = (r == SQL_SUCCESS_WITH_INFO) ? colSize : lengthIndicator/sizeof(SQLTCHAR);
                     fieldVal += fromSQLTCHAR(buf, rSize);
-                if (lengthIndicator < SQLLEN(colSize*sizeof(SQLTCHAR))) {
+                if ((unsigned)lengthIndicator < colSize*sizeof(SQLTCHAR)) {
                     // workaround for Drivermanagers that don't return SQL_NO_DATA
                     break;
                 }
@@ -435,7 +441,7 @@ static QString qGetStringData(SQLHANDLE hStmt, int column, int colSize, bool uni
                 // colSize-1: remove 0 termination when there is more data to fetch
                 int rSize = (r == SQL_SUCCESS_WITH_INFO) ? colSize : lengthIndicator;
                     fieldVal += QString::fromUtf8((const char *)buf.constData(), rSize);
-                if (lengthIndicator < SQLLEN(colSize)) {
+                if (lengthIndicator < (unsigned int)colSize) {
                     // workaround for Drivermanagers that don't return SQL_NO_DATA
                     break;
                 }
@@ -456,10 +462,10 @@ static QVariant qGetBinaryData(SQLHANDLE hStmt, int column)
     QByteArray fieldVal;
     SQLSMALLINT colNameLen;
     SQLSMALLINT colType;
-    SQLULEN colSize;
+    QSQLULEN colSize;
     SQLSMALLINT colScale;
     SQLSMALLINT nullable;
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
     SQLRETURN r = SQL_ERROR;
 
     QVarLengthArray<SQLTCHAR> colName(COLNAMESIZE);
@@ -493,7 +499,7 @@ static QVariant qGetBinaryData(SQLHANDLE hStmt, int column)
             break;
         if (lengthIndicator == SQL_NULL_DATA)
             return QVariant(QVariant::ByteArray);
-        if (lengthIndicator > SQLLEN(colSize) || lengthIndicator == SQL_NO_TOTAL) {
+        if (lengthIndicator > QSQLLEN(colSize) || lengthIndicator == SQL_NO_TOTAL) {
             read += colSize;
             colSize = 65536;
         } else {
@@ -511,7 +517,7 @@ static QVariant qGetBinaryData(SQLHANDLE hStmt, int column)
 static QVariant qGetIntData(SQLHANDLE hStmt, int column, bool isSigned = true)
 {
     SQLINTEGER intbuf = 0;
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
     SQLRETURN r = SQLGetData(hStmt,
                               column+1,
                               isSigned ? SQL_C_SLONG : SQL_C_ULONG,
@@ -531,7 +537,7 @@ static QVariant qGetIntData(SQLHANDLE hStmt, int column, bool isSigned = true)
 static QVariant qGetDoubleData(SQLHANDLE hStmt, int column)
 {
     SQLDOUBLE dblbuf;
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
     SQLRETURN r = SQLGetData(hStmt,
                               column+1,
                               SQL_C_DOUBLE,
@@ -551,7 +557,7 @@ static QVariant qGetDoubleData(SQLHANDLE hStmt, int column)
 static QVariant qGetBigIntData(SQLHANDLE hStmt, int column, bool isSigned = true)
 {
     SQLBIGINT lngbuf = 0;
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
     SQLRETURN r = SQLGetData(hStmt,
                               column+1,
                               isSigned ? SQL_C_SBIGINT : SQL_C_UBIGINT,
@@ -595,7 +601,7 @@ static QSqlField qMakeFieldInfo(const QODBCPrivate* p, int i )
 {
     SQLSMALLINT colNameLen;
     SQLSMALLINT colType;
-    SQLULEN colSize;
+    QSQLULEN colSize;
     SQLSMALLINT colScale;
     SQLSMALLINT nullable;
     SQLRETURN r = SQL_ERROR;
@@ -615,7 +621,7 @@ static QSqlField qMakeFieldInfo(const QODBCPrivate* p, int i )
         return QSqlField();
     }
 
-    SQLLEN unsignedFlag = SQL_FALSE;
+    QSQLLEN unsignedFlag = SQL_FALSE;
     r = SQLColAttribute (p->hStmt,
                          i + 1,
                          SQL_DESC_UNSIGNED,
@@ -971,8 +977,7 @@ bool QODBCResult::reset (const QString& query)
         return true;
     }
 
-    SQLULEN isScrollable = 0;
-    SQLINTEGER bufferLength;
+    SQLINTEGER isScrollable, bufferLength;
     r = SQLGetStmtAttr(d->hStmt, SQL_ATTR_CURSOR_SCROLLABLE, &isScrollable, SQL_IS_INTEGER, &bufferLength);
     if(r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO)
         QSqlResult::setForwardOnly(isScrollable==SQL_NONSCROLLABLE);
@@ -1141,7 +1146,7 @@ QVariant QODBCResult::data(int field)
         return d->fieldCache.at(field);
 
     SQLRETURN r(0);
-    SQLLEN lengthIndicator = 0;
+    QSQLLEN lengthIndicator = 0;
 
     for (int i = d->fieldCacheIdx; i <= field; ++i) {
         // some servers do not support fetching column n after we already
@@ -1251,7 +1256,7 @@ int QODBCResult::size()
 
 int QODBCResult::numRowsAffected()
 {
-    SQLLEN affectedRowCount = 0;
+    QSQLLEN affectedRowCount = 0;
     SQLRETURN r = SQLRowCount(d->hStmt, &affectedRowCount);
     if (r == SQL_SUCCESS)
         return affectedRowCount;
@@ -1338,8 +1343,8 @@ bool QODBCResult::exec()
         SQLCloseCursor(d->hStmt);
 
     QList<QByteArray> tmpStorage; // holds temporary buffers
-    QVarLengthArray<SQLLEN, 32> indicators(boundValues().count());
-    memset(indicators.data(), 0, indicators.size() * sizeof(SQLLEN));
+    QVarLengthArray<QSQLLEN, 32> indicators(boundValues().count());
+    memset(indicators.data(), 0, indicators.size() * sizeof(QSQLLEN));
 
     // bind parameters - only positional binding allowed
     QVector<QVariant>& values = boundValues();
@@ -1349,7 +1354,7 @@ bool QODBCResult::exec()
         if (bindValueType(i) & QSql::Out)
             values[i].detach();
         const QVariant &val = values.at(i);
-        SQLLEN *ind = &indicators[i];
+        QSQLLEN *ind = &indicators[i];
         if (val.isNull())
             *ind = SQL_NULL_DATA;
         switch (val.type()) {
@@ -1404,25 +1409,14 @@ bool QODBCResult::exec()
                 dt->hour = qdt.time().hour();
                 dt->minute = qdt.time().minute();
                 dt->second = qdt.time().second();
-
-                int precision = d->driverPrivate->datetime_precision - 20; // (20 includes a separating period)
-                if (precision <= 0) {
-                    dt->fraction = 0;
-                } else {
-                    dt->fraction = qdt.time().msec() * 1000000;
-
-                    // (How many leading digits do we want to keep?  With SQL Server 2005, this should be 3: 123000000)
-                    int keep = (int)qPow(10.0, 9 - qMin(9, precision));
-                    dt->fraction /= keep * keep;
-                }
-
+                dt->fraction = qdt.time().msec() * 1000000;
                 r = SQLBindParameter(d->hStmt,
                                       i + 1,
                                       qParamType[(QFlag)(bindValueType(i)) & QSql::InOut],
                                       SQL_C_TIMESTAMP,
                                       SQL_TIMESTAMP,
-                                      d->driverPrivate->datetime_precision,
-                                      precision,
+                                      19,
+                                      0,
                                       (void *) dt,
                                       0,
                                       *ind == SQL_NULL_DATA ? ind : NULL);
@@ -1605,8 +1599,7 @@ bool QODBCResult::exec()
         return false;
     }
 
-    SQLULEN isScrollable = 0;
-    SQLINTEGER bufferLength;
+    SQLINTEGER isScrollable, bufferLength;
     r = SQLGetStmtAttr(d->hStmt, SQL_ATTR_CURSOR_SCROLLABLE, &isScrollable, SQL_IS_INTEGER, &bufferLength);
     if(r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO)
         QSqlResult::setForwardOnly(isScrollable==SQL_NONSCROLLABLE);
@@ -1909,7 +1902,6 @@ bool QODBCDriver::open(const QString & db,
     d->checkSqlServer();
     d->checkHasSQLFetchScroll();
     d->checkHasMultiResults();
-    d->checkDateTimePrecision();
     setOpen(true);
     setOpenError(false);
     if(d->isMSSqlServer) {
@@ -2143,29 +2135,6 @@ void QODBCDriverPrivate::checkHasMultiResults()
 #else
         hasMultiResultSets = QString::fromUtf8((const char *)driverResponse.constData(), length).startsWith(QLatin1Char('Y'));
 #endif
-}
-
-void QODBCDriverPrivate::checkDateTimePrecision()
-{
-    SQLINTEGER columnSize;
-    SQLHANDLE hStmt;
-
-    SQLRETURN r = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
-    if (r != SQL_SUCCESS) {
-        return;
-    }
-
-    r = SQLGetTypeInfo(hStmt, SQL_TIMESTAMP);
-    if (r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO) {
-        r = SQLFetch(hStmt);
-        if ( r == SQL_SUCCESS || r == SQL_SUCCESS_WITH_INFO )
-        {
-            if (SQLGetData(hStmt, 3, SQL_INTEGER, &columnSize, sizeof(columnSize), 0) == SQL_SUCCESS) {
-                datetime_precision = (int)columnSize;
-            }
-        }
-    }
-    SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
 }
 
 QSqlResult *QODBCDriver::createResult() const
